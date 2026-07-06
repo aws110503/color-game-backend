@@ -1,0 +1,10 @@
+spring.datasource.url=jdbc:postgresql://localhost:5432/color_game_db
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_POSTGRES_PASSWORD_HERE
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+app.jwt.secret=YOUR_LONG_SECRET_KEY_HERE
+app.jwt.expiration=86400000
