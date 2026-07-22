@@ -1,5 +1,6 @@
 package com.colorgame.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,7 @@ public class User {
     @Column(unique = true, nullable = false, length = 255)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false, length = 255)
     private String password;
 

@@ -33,14 +33,14 @@ public class SecurityAuditService {
         LocalDateTime since1h = LocalDateTime.now().minusHours(1);
 
         stats.put("loginFailures24h", auditLogRepository.countLoginFailuresSince(since24h));
-        stats.put("suspiciousIps", auditLogRepository.findSuspiciousIps(since1h, 5));
+        stats.put("suspiciousIps", auditLogRepository.findSuspiciousIps(since1h, 10));
         stats.put("recentEvents", auditLogRepository.findRecentEvents(since24h).stream().limit(50).toList());
 
         return stats;
     }
 
     public List<Map<String, Object>> getSuspiciousIps() {
-        List<Object[]> results = auditLogRepository.findSuspiciousIps(LocalDateTime.now().minusHours(1), 5);
+        List<Object[]> results = auditLogRepository.findSuspiciousIps(LocalDateTime.now().minusHours(1), 10);
         return results.stream().map(row -> {
             Map<String, Object> map = new HashMap<>();
             map.put("ipAddress", row[0]);

@@ -1,9 +1,11 @@
 package com.colorgame.backend.service;
 
 import com.colorgame.backend.dto.*;
+import com.colorgame.backend.model.JwtBlacklist;
 import com.colorgame.backend.model.RefreshToken;
 import com.colorgame.backend.model.SecurityAuditLog;
 import com.colorgame.backend.model.User;
+import com.colorgame.backend.repository.JwtBlacklistRepository;
 import com.colorgame.backend.repository.RefreshTokenRepository;
 import com.colorgame.backend.repository.SecurityAuditLogRepository;
 import com.colorgame.backend.repository.UserRepository;
@@ -22,22 +24,25 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SecurityAuditLogRepository auditLogRepository;
+    private final JwtBlacklistRepository jwtBlacklistRepository;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-                       RefreshTokenRepository refreshTokenRepository, SecurityAuditLogRepository auditLogRepository) {
+                       RefreshTokenRepository refreshTokenRepository, SecurityAuditLogRepository auditLogRepository,
+                       JwtBlacklistRepository jwtBlacklistRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.refreshTokenRepository = refreshTokenRepository;
         this.auditLogRepository = auditLogRepository;
+        this.jwtBlacklistRepository = jwtBlacklistRepository;
     }
 
     public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Ce nom d'utilisateur est déjà utilisé.");
+            throw new RuntimeException("Cet identifiant ou cet email est déjà utilisé.");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Cet email est déjà utilisé.");
+            throw new RuntimeException("Cet identifiant ou cet email est déjà utilisé.");
         }
 
         User user = new User();
@@ -128,11 +133,11 @@ public class AuthService {
             try {
                 String jti = jwtUtil.extractJti(jwt);
                 if (jti != null) {
-                    com.colorgame.backend.model.JwtBlacklist blacklist = new com.colorgame.backend.model.JwtBlacklist();
+                    JwtBlacklist blacklist = new JwtBlacklist();
                     blacklist.setJti(jti);
                     blacklist.setExpiresAt(jwtUtil.extractExpiration(jwt).toInstant()
                             .atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
-                    // Use repository directly to avoid circular dependency
+                    jwtBlacklistRepository.save(blacklist);
                 }
             } catch (Exception ignored) {
             }
