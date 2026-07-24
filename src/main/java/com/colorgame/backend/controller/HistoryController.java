@@ -3,6 +3,7 @@ package com.colorgame.backend.controller;
 import com.colorgame.backend.dto.HistoryDTO;
 import com.colorgame.backend.dto.HistoryRequest;
 import com.colorgame.backend.service.HistoryService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ public class HistoryController {
     }
 
     @PostMapping("/api/history")
-    public ResponseEntity<?> recordChange(Authentication auth, @RequestBody HistoryRequest request) {
+    public ResponseEntity<?> recordChange(Authentication auth, @Valid @RequestBody HistoryRequest request) {
         String username = auth.getName();
         HistoryDTO dto = historyService.recordChange(username, request);
         return ResponseEntity.ok(dto);
