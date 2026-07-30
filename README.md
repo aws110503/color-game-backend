@@ -73,3 +73,60 @@ Le serveur démarre sur `http://localhost:8080`. Les tables sont créées automa
 | GET | `/api/admin/history/all` | ADMIN | Historique global de tous les utilisateurs |
 
 Toutes les routes protégées attendent un header :
+
+## 4. Lancer avec Docker
+
+### Avec Docker Compose (recommandé)
+
+1. Copier le fichier d'environnement :
+```bash
+cp ../.env.example ../.env
+```
+2. Éditer `../.env` avec vos vrais mots de passe
+3. Lancer :
+```bash
+docker-compose up -d
+```
+
+L'application sera accessible sur :
+- Frontend : http://localhost:4200
+- Backend API : http://localhost:8080
+
+### Sans Docker Compose
+
+```bash
+docker build -t color-game-backend .
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/color_game_db \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=your_password \
+  -e APP_JWT_SECRET=your_32_char_secret_here \
+  color-game-backend
+```
+
+## 5. Security Features
+
+### Application Security (AppSec)
+- **JWT Hardening** : Access tokens (15min) + Refresh tokens (7j), token blacklist, rejection algo 'none'
+- **Rate Limiting** : 5 tentatives/minute sur /login, 3/minute sur /register, blocage IP après 10 échecs
+- **Security Headers** : HSTS, X-Frame-Options: DENY, CSP, X-Content-Type-Options: nosniff, Referrer-Policy
+- **Input Validation** : Jakarta Bean Validation sur tous les DTOs
+- **Audit Logging** : Table security_audit_log avec tous les événements sensibles
+- **Global Exception Handler** : Aucune stack trace exposée aux utilisateurs
+
+### DevSecOps Pipeline
+Le pipeline de sécurité complet est disponible dans `.github/workflows/security-pipeline.yml` :
+1. **Gitleaks** - Détection de secrets
+2. **SpotBugs + FindSecBugs** - Analyse statique SAST
+3. **OWASP Dependency Check** - Scan de dépendances
+4. **Maven Build & Test** - Compilation et tests
+5. **Trivy** - Scan de vulnérabilités Docker
+6. **OWASP ZAP** - Test dynamique DAST
+7. **Deploy** - Déploiement si toutes les portes passent
+
+### Monitoring
+- Dashboard de sécurité admin : `/admin/security`
+- Endpoints API :
+  - `GET /api/admin/security/audit-log` - Logs paginés
+  - `GET /api/admin/security/stats` - Statistiques 24h
+  - `GET /api/admin/security/suspicious-ips` - IPs suspectes

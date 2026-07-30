@@ -3,6 +3,8 @@ package com.colorgame.backend.security;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
+import com.colorgame.backend.model.SecurityAuditLog;
+import com.colorgame.backend.repository.SecurityAuditLogRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +23,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final Map<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> registerBuckets = new ConcurrentHashMap<>();
     private final Map<String, Long> blockedIps = new ConcurrentHashMap<>();
+    private final SecurityAuditLogRepository auditLogRepository;
+
+    public RateLimitFilter(SecurityAuditLogRepository auditLogRepository) {
+        this.auditLogRepository = auditLogRepository;
+    }
 
     private static final int LOGIN_LIMIT = 5;
     private static final int REGISTER_LIMIT = 3;
@@ -55,6 +62,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Long blockedUntil = blockedIps.get(clientIp);
         if (blockedUntil != null) {
             if (System.currentTimeMillis() < blockedUntil) {
+                logAuditEvent("RATE_LIMIT_BLOCKED", null, clientIp, uri, "IP temporarily blocked after 10+ failures");
                 response.setStatus(429);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\": \"IP bloquée temporairement. Réessayez dans 15 minutes.\"}");
@@ -74,6 +82,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 long failedCount = LOGIN_LIMIT - probe.getRemainingTokens();
                 if (failedCount >= BLOCK_THRESHOLD) {
                     blockedIps.put(clientIp, System.currentTimeMillis() + BLOCK_DURATION_MS);
+                    logAuditEvent("RATE_LIMIT_BLOCKED", null, clientIp, uri, "IP blocked for 15min after 10+ login attempts");
+                } else {
+                    logAuditEvent("RATE_LIMIT_EXCEEDED", null, clientIp, uri, "Login rate limit exceeded (5/min)");
                 }
                 response.setStatus(429);
                 response.setContentType("application/json");
@@ -85,6 +96,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             if (probe.isConsumed()) {
                 filterChain.doFilter(request, response);
             } else {
+                logAuditEvent("RATE_LIMIT_EXCEEDED", null, clientIp, uri, "Register rate limit exceeded (3/min)");
                 response.setStatus(429);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\": \"Trop de tentatives d'inscription. Réessayez dans une minute.\"}");
@@ -92,5 +104,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
         } else {
             filterChain.doFilter(request, response);
         }
+    }
+
+    private void logAuditEvent(String eventType, Long userId, String ip, String endpoint, String details) {
+        SecurityAuditLog log = new SecurityAuditLog();
+        log.setEventType(eventType);
+        log.setUserId(userId);
+        log.setIpAddress(ip);
+        log.setEndpoint(endpoint);
+        log.setDetails(details);
+        auditLogRepository.save(log);
     }
 }

@@ -46,7 +46,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (jwtUtil.isTokenValid(token)) {
             // SECURITY: Check if token is blacklisted (logged out)
-            System.out.println("✅ Token valid for: " + jwtUtil.extractUsername(token));
             String jti = jwtUtil.extractJti(token);
             if (jti != null && jwtBlacklistRepository.existsByJti(jti)) {
                 filterChain.doFilter(request, response);
@@ -64,10 +63,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-            System.out.println("✅ Authentication set for: " + username);
-        } else {
-            System.out.println("❌ isTokenValid returned FALSE");
-        
+            
         }
 
         filterChain.doFilter(request, response);
