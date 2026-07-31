@@ -34,3 +34,5 @@ build/
 src/main/resources/application.properties
 .postman/
 postman/
+color_game_backup.dump
+color_game_backup.sql
